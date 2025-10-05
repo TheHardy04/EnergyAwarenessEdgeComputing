@@ -8,15 +8,9 @@
     cd "EnergyAwarenessEdgeComputing"
     ```
 
-2.  Create a virtual environment (recommended):
+2.  Install the required packages:
     ```bash
-    python -m venv venv
-    .\venv\Scripts\activate
-    ```
-
-3.  Install the required packages:
-    ```bash
-    pip install -r ..\requirements.txt
+    pip install -r requirements.txt
     ```
 
 ## Usage
@@ -24,7 +18,7 @@
 To run the network graph visualization, execute the following command from the root directory of the project:
 
 ```bash
-python network_graph.py
+python main.py
 ```
 
-This will display a plot of the network graph with nodes representing IoT devices, gateways, fog servers, and cloud servers, along with their resource attributes and network link characteristics.
+This will display a plot of the network graph with nodes representing IoT devices, gateways, fog servers, and cloud servers, along with their resource attributes and network link characteristics that comes from a property file.
