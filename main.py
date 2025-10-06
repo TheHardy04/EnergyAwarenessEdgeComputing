@@ -1,6 +1,8 @@
 
 import json
 
+import argparse
+
 from src.infraProperties import InfraProperties
 from src.networkGraph import NetworkGraph
 from src.appProperties import AppProperties
@@ -9,6 +11,9 @@ from src.greedy import GreedyFirstFit
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Demo placement runner')
+    parser.add_argument('--start-host', type=int, default=None, help='Optional infra node id to start placement from')
+    args = parser.parse_args()
     # backwards-compatible CLI: parse the default properties file and print JSON
     infra = InfraProperties.from_file()
     print(infra.to_json(indent=2, ensure_ascii=False))
@@ -52,7 +57,7 @@ if __name__ == '__main__':
     svc = ServiceGraph.from_app_dict(app.to_dict())
 
     strategy = GreedyFirstFit()
-    result = strategy.place(svc, net)
+    result = strategy.place(svc, net, start_host=args.start_host)
 
     print('Placement status:', result.meta.get('status'))
     print('Mapping (component -> host):')

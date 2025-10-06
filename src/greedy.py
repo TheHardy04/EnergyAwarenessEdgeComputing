@@ -15,7 +15,7 @@ class GreedyFirstFit:
     - Returns mapping and per-edge routing meta.
     """
 
-    def place(self, service_graph, network_graph) -> PlacementResult:
+    def place(self, service_graph, network_graph, start_host: int = None) -> PlacementResult:
         SG, NG = service_graph.G, network_graph.G
 
         # Track host resources
@@ -23,11 +23,19 @@ class GreedyFirstFit:
 
         # 1) Place components
         mapping: Dict[int, int] = {}
+        # Prepare host iteration order. If start_host is provided and exists in
+        # the infra graph, begin the search from that node and wrap around.
+        hosts_list = list(NG.nodes())
+        if start_host is not None and start_host in hosts_list:
+            # rotate so start_host is first
+            idx = hosts_list.index(start_host)
+            hosts_list = hosts_list[idx:] + hosts_list[:idx]
+
         for comp, d in SG.nodes(data=True):
             cpu_req = int(d.get('cpu') or 0)
             ram_req = int(d.get('ram') or 0)
             placed = False
-            for host in NG.nodes():
+            for host in hosts_list:
                 if can_host(res, host, cpu_req, ram_req):
                     allocate_on_host(res, host, cpu_req, ram_req)
                     mapping[comp] = host

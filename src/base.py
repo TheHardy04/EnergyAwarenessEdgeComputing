@@ -11,5 +11,7 @@ class PlacementResult:
 
 
 class PlacementStrategy(Protocol):
-    def place(self, service_graph, network_graph) -> PlacementResult:
+    # Optional start_host allows callers to indicate which infra node should be
+    # considered first when placing components. Implementations may ignore it.
+    def place(self, service_graph, network_graph, start_host: Optional[int] = None) -> PlacementResult:
         ...
