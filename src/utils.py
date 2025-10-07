@@ -2,6 +2,9 @@ from typing import Dict, Any, Tuple, List
 
 
 def host_resources_snapshot(network_graph) -> Dict[int, Dict[str, Any]]:
+    """
+    Create a snapshot of host resources (cpu, ram) from the network graph.
+    """
     resources: Dict[int, Dict[str, Any]] = {}
     for n, d in network_graph.G.nodes(data=True):
         resources[n] = {
@@ -24,7 +27,9 @@ def allocate_on_host(resources: Dict[int, Dict[str, Any]], node: int, cpu: int, 
 
 
 def edge_capacity_ok(network_graph, path: List[int], bandwidth: int, latency_limit: int) -> Tuple[bool, Dict[str, Any]]:
-    # Check all consecutive pairs along the path for bw and accumulate latency
+    """
+    Check if the given path can support the bandwidth and latency constraints.
+    """
     total_latency = 0
     for i in range(len(path) - 1):
         u, v = path[i], path[i + 1]
@@ -39,3 +44,17 @@ def edge_capacity_ok(network_graph, path: List[int], bandwidth: int, latency_lim
     if total_latency > latency_limit:
         return False, {'reason': 'latency', 'total_latency': total_latency, 'limit': latency_limit}
     return True, {'total_latency': total_latency}
+
+
+def allocate_on_path(network_graph, path: List[int], bandwidth: int) -> None:
+    """Consume bandwidth on each link along the given path.
+
+    This mutates the network_graph in place by subtracting `bandwidth` from
+    each edge's 'bandwidth' attribute. It assumes a prior check (e.g.
+    edge_capacity_ok) ensured links had sufficient capacity.
+    """
+    for i in range(len(path) - 1):
+        u, v = path[i], path[i + 1]
+        data = network_graph.G[u][v]
+        cur = int(data.get('bandwidth') or 0)
+        data['bandwidth'] = cur - int(bandwidth)

@@ -4,6 +4,7 @@ import networkx as nx
 
 from src.base import PlacementResult
 from src.utils import host_resources_snapshot, can_host, allocate_on_host, edge_capacity_ok
+from src.utils import allocate_on_path
 
 
 class GreedyFirstFit:
@@ -23,14 +24,14 @@ class GreedyFirstFit:
 
         # 1) Place components
         mapping: Dict[int, int] = {}
-        # Prepare host iteration order. If start_host is provided and exists in
-        # the infra graph, begin the search from that node and wrap around.
+        # Prepare host iteration order. If start_host is provided and exists
         hosts_list = list(NG.nodes())
         if start_host is not None and start_host in hosts_list:
             # rotate so start_host is first
             idx = hosts_list.index(start_host)
             hosts_list = hosts_list[idx:] + hosts_list[:idx]
 
+        # Iterate components in order and place on first-fit host
         for comp, d in SG.nodes(data=True):
             cpu_req = int(d.get('cpu') or 0)
             ram_req = int(d.get('ram') or 0)
@@ -66,6 +67,9 @@ class GreedyFirstFit:
             ok, info = edge_capacity_ok(network_graph, path, bw_req, lat_limit)
             if not ok:
                 return PlacementResult(mapping=mapping, meta={'status': 'failed', 'reason': f'constraints_{u}_{v}', 'detail': info})
+            # consume bandwidth along the chosen path because the application
+            # runs continuously and thus uses link capacity over time
+            allocate_on_path(network_graph, path, bw_req)
             routing[(u, v)] = {'path': path, **info}
 
         return PlacementResult(mapping=mapping, meta={'status': 'ok', 'routing': routing})

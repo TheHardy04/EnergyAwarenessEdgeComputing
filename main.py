@@ -68,3 +68,5 @@ if __name__ == '__main__':
         print(json.dumps(pretty, indent=2))
     else:
         print('Details:', json.dumps(result.meta, indent=2))
+
+    G.draw()
