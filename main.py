@@ -1,6 +1,4 @@
-
 import json
-
 import argparse
 
 from src.infraProperties import InfraProperties
@@ -8,6 +6,7 @@ from src.networkGraph import NetworkGraph
 from src.appProperties import AppProperties
 from src.serviceGraph import ServiceGraph
 from src.greedy import GreedyFirstFit
+from mappingUnitTest import MappingUnitTest
 
 
 if __name__ == '__main__':
@@ -70,3 +69,6 @@ if __name__ == '__main__':
         print('Details:', json.dumps(result.meta, indent=2))
 
     G.draw()
+
+    # Run unit tests
+    MappingUnitTest.run_tests(net, svc, result)

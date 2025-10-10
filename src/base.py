@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, Protocol
 class PlacementResult:
     # Mapping from service/component id -> host node id
     mapping: Dict[int, int]
-    # Optional diagnostics (e.g., path info, resource usage)
+    # diagnostics (e.g., path info, resource usage)
     meta: Dict[str, Any]
 
 

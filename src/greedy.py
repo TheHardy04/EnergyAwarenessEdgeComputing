@@ -37,6 +37,7 @@ class GreedyFirstFit:
             ram_req = int(d.get('ram') or 0)
             placed = False
             for host in hosts_list:
+                print(f"Trying to place component {comp} (cpu={cpu_req}, ram={ram_req}) on host {host} (cpu={res[host]['cpu_total'] - res[host]['cpu_used']}/{res[host]['cpu_total']}, ram={res[host]['ram_total'] - res[host]['ram_used']}/{res[host]['ram_total']})")
                 if can_host(res, host, cpu_req, ram_req):
                     allocate_on_host(res, host, cpu_req, ram_req)
                     mapping[comp] = host
