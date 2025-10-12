@@ -59,6 +59,8 @@ if __name__ == '__main__':
     result = strategy.place(svc, net, start_host=args.start_host)
 
     print('Placement status:', result.meta.get('status'))
+    print('Path:')
+    print(result.paths)
     print('Mapping (component -> host):')
     print(json.dumps(result.mapping, indent=2))
     if 'routing' in result.meta:
@@ -67,8 +69,16 @@ if __name__ == '__main__':
         print(json.dumps(pretty, indent=2))
     else:
         print('Details:', json.dumps(result.meta, indent=2))
+    if 'host_res' in result.meta:
+        print('Final host resources:')
+        print(json.dumps(result.meta['host_res'], indent=2))
+    if 'edge_res' in result.meta:
+        print('Final edge resources:')
+        pretty = {f"{u}->{v}": info for (u, v), info in result.meta['edge_res'].items()}
+        print(json.dumps(pretty, indent=2))
 
     G.draw()
-
+    
+    print("\n")
     # Run unit tests
     MappingUnitTest.run_tests(net, svc, result)

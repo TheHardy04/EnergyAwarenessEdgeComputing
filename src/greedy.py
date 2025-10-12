@@ -3,8 +3,7 @@ from typing import Dict, Any, List, Tuple
 import networkx as nx
 
 from src.base import PlacementResult
-from src.utils import host_resources_snapshot, can_host, allocate_on_host, edge_capacity_ok
-from src.utils import allocate_on_path
+from src.utils import host_resources_snapshot, edge_ressources_snapshot, can_host, allocate_on_host, edge_capacity_ok, allocate_on_edges
 
 
 class GreedyFirstFit:
@@ -21,6 +20,8 @@ class GreedyFirstFit:
 
         # Track host resources
         res = host_resources_snapshot(network_graph)
+        # Track edge resources (bandwidth)
+        edge_res = edge_ressources_snapshot(network_graph)
 
         # 1) Place components
         mapping: Dict[int, int] = {}
@@ -37,14 +38,13 @@ class GreedyFirstFit:
             ram_req = int(d.get('ram') or 0)
             placed = False
             for host in hosts_list:
-                print(f"Trying to place component {comp} (cpu={cpu_req}, ram={ram_req}) on host {host} (cpu={res[host]['cpu_total'] - res[host]['cpu_used']}/{res[host]['cpu_total']}, ram={res[host]['ram_total'] - res[host]['ram_used']}/{res[host]['ram_total']})")
                 if can_host(res, host, cpu_req, ram_req):
                     allocate_on_host(res, host, cpu_req, ram_req)
                     mapping[comp] = host
                     placed = True
                     break
             if not placed:
-                return PlacementResult(mapping=mapping, meta={'status': 'failed', 'reason': f'no_host_for_component_{comp}'})
+                return PlacementResult(mapping=mapping, paths={}, meta={'status': 'failed', 'reason': f'no_host_for_component_{comp}'})
 
         # 2) Route edges with constraints
         # Build a latency-weighted graph for shortest paths
@@ -63,14 +63,17 @@ class GreedyFirstFit:
             try:
                 path = nx.shortest_path(H, source=src_host, target=dst_host, weight='weight')
             except nx.NetworkXNoPath:
-                return PlacementResult(mapping=mapping, meta={'status': 'failed', 'reason': f'no_path_{u}_{v}'})
+                return PlacementResult(mapping=mapping, paths={}, meta={'status': 'failed', 'reason': f'no_path_{u}_{v}'})
 
-            ok, info = edge_capacity_ok(network_graph, path, bw_req, lat_limit)
-            if not ok:
-                return PlacementResult(mapping=mapping, meta={'status': 'failed', 'reason': f'constraints_{u}_{v}', 'detail': info})
-            # consume bandwidth along the chosen path because the application
-            # runs continuously and thus uses link capacity over time
-            allocate_on_path(network_graph, path, bw_req)
-            routing[(u, v)] = {'path': path, **info}
+            if not edge_capacity_ok(edge_res, path, bw_req):
+                return PlacementResult(mapping=mapping, paths=paths, meta={'status': 'failed', 'reason': f'constraints_{u}_{v}'})
+            allocate_on_edges(edge_res, path, bw_req)
 
-        return PlacementResult(mapping=mapping, meta={'status': 'ok', 'routing': routing})
+            routing[(u, v)] = {
+                'path': path,
+                'bandwidth': bw_req,
+                'latency_limit': lat_limit,
+            }
+
+        paths = {k: v['path'] for k, v in routing.items()}
+        return PlacementResult(mapping=mapping, paths=paths, meta={'status': 'ok', 'routing': routing, 'host_res': res, 'edge_res': edge_res})

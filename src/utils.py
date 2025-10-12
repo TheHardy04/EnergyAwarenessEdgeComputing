@@ -44,37 +44,21 @@ def allocate_on_host(resources: Dict[int, Dict[str, Any]], node: int, cpu: int, 
     resources[node]['cpu_used'] += cpu
     resources[node]['ram_used'] += ram
 
-
-def edge_capacity_ok(network_graph, path: List[int], bandwidth: int, latency_limit: int) -> Tuple[bool, Dict[str, Any]]:
+def edge_capacity_ok(edge_resources: Dict[Tuple[int, int], Dict[str, Any]], path: List[int], bandwidth: int) -> bool:
     """
-    Check if the given path can support the bandwidth and latency constraints.
-    """
-    total_latency = 0
-    for i in range(len(path) - 1):
-        u, v = path[i], path[i + 1]
-        if not network_graph.G.has_edge(u, v):
-            return False, {'reason': 'missing_edge', 'u': u, 'v': v}
-        data = network_graph.G[u][v]
-        bw = int(data.get('bandwidth') or 0)
-        lat = int(data.get('latency') or 0)
-        if bw < bandwidth:
-            return False, {'reason': 'bandwidth', 'u': u, 'v': v, 'bw': bw, 'required': bandwidth}
-        total_latency += lat
-    if total_latency > latency_limit:
-        return False, {'reason': 'latency', 'total_latency': total_latency, 'limit': latency_limit}
-    return True, {'total_latency': total_latency}
-
-
-def allocate_on_path(network_graph, path: List[int], bandwidth: int) -> None:
-    """
-    Consume bandwidth on each link along the given path.
-
-    This mutates the network_graph in place by subtracting `bandwidth` from
-    each edge's 'bandwidth' attribute. It assumes a prior check (e.g.
-    edge_capacity_ok) ensured links had sufficient capacity.
+    Check if all edges along the path can accommodate the bandwidth request.
     """
     for i in range(len(path) - 1):
         u, v = path[i], path[i + 1]
-        data = network_graph.G[u][v]
-        cur = int(data.get('bandwidth') or 0)
-        data['bandwidth'] = cur - int(bandwidth)
+        r = edge_resources.get((u, v))
+        if r is None or r['bandwidth_used'] + bandwidth > r['bandwidth_total']:
+            return False
+    return True
+
+def allocate_on_edges(edge_resources: Dict[Tuple[int, int], Dict[str, Any]], path: List[int], bandwidth: int) -> None:
+    """
+    Consume bandwidth on all edges along the path.
+    """
+    for i in range(len(path) - 1):
+        u, v = path[i], path[i + 1]
+        edge_resources[(u, v)]['bandwidth_used'] += bandwidth
