@@ -15,13 +15,32 @@ def host_resources_snapshot(network_graph) -> Dict[int, Dict[str, Any]]:
         }
     return resources
 
+def edge_ressources_snapshot(network_graph) -> Dict[Tuple[int, int], Dict[str, Any]]:
+    """
+    Create a snapshot of edge resources (bandwidth, latency) from the network graph.
+    """
+    resources: Dict[Tuple[int, int], Dict[str, Any]] = {}
+    for u, v, d in network_graph.G.edges(data=True):
+        resources[(u, v)] = {
+            'bandwidth_total': int(d.get('bandwidth') or 0),
+            'latency': int(d.get('latency') or 0),
+            'bandwidth_used': 0,
+        }
+    return resources
+
 
 def can_host(resources: Dict[int, Dict[str, Any]], node: int, cpu: int, ram: int) -> bool:
+    """
+    Check if the given host node can accommodate the cpu/ram request.
+    """
     r = resources[node]
     return r['cpu_used'] + cpu <= r['cpu_total'] and r['ram_used'] + ram <= r['ram_total']
 
 
 def allocate_on_host(resources: Dict[int, Dict[str, Any]], node: int, cpu: int, ram: int) -> None:
+    """
+    Consume cpu/ram on the given host node.
+    """
     resources[node]['cpu_used'] += cpu
     resources[node]['ram_used'] += ram
 
@@ -47,7 +66,8 @@ def edge_capacity_ok(network_graph, path: List[int], bandwidth: int, latency_lim
 
 
 def allocate_on_path(network_graph, path: List[int], bandwidth: int) -> None:
-    """Consume bandwidth on each link along the given path.
+    """
+    Consume bandwidth on each link along the given path.
 
     This mutates the network_graph in place by subtracting `bandwidth` from
     each edge's 'bandwidth' attribute. It assumes a prior check (e.g.

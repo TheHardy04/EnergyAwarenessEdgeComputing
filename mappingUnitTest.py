@@ -2,6 +2,7 @@ from src.base import PlacementResult
 from src.serviceGraph import *
 from src.networkGraph import *
 from src.utils import *
+import copy
 
 class MappingUnitTest:
     @staticmethod
@@ -36,17 +37,38 @@ class MappingUnitTest:
         print("All resource constraint tests passed.")
 
         # Test 5: Validate edge routing constraints
-        for (u, v), route_info in final_placement.mapping.items():
+        routing = final_placement.meta.get('routing', {})
+
+        reconstructed = copy.deepcopy(network_graph)
+
+        # Add back allocations so reconstructed represents pre-allocation state
+        for (u, v), info in routing.items():
+            path = info.get('path', [])
+            bw_req = service_graph.G[u][v].get('bandwidth', 0)
+            # increment each edge along the path by bw_req
+            for i in range(len(path) - 1):
+                a, b = path[i], path[i + 1]
+                if not reconstructed.G.has_edge(a, b):
+                    # should not happen if routing is valid, but guard anyway
+                    continue
+                data = reconstructed.G[a][b]
+                cur = int(data.get('bandwidth') or 0)
+                data['bandwidth'] = cur + int(bw_req)
+
+        # Now validate each routed edge against the reconstructed graph
+        for (u, v), info in routing.items():
             src_host = final_placement.mapping[u]
             dst_host = final_placement.mapping[v]
             bw_req = service_graph.G[u][v].get('bandwidth', 0)
             lat_limit = service_graph.G[u][v].get('latency', 10**9)
 
-            path = route_info.get('path', [])
+            path = info.get('path', [])
+            assert path, f"No path recorded for service edge {u}->{v}"
             assert path[0] == src_host, f"Route for edge {u}->{v} does not start at source host {src_host}"
             assert path[-1] == dst_host, f"Route for edge {u}->{v} does not end at destination host {dst_host}"
 
-            ok, info = edge_capacity_ok(network_graph, path, bw_req, lat_limit)
-            assert ok, f"Edge {u}->{v} routing failed constraints: {info}"
+            ok, info2 = edge_capacity_ok(reconstructed, path, bw_req, lat_limit)
+            assert ok, f"Edge {u}->{v} routing failed constraints: {info2}"
+        print("All edge routing constraint tests passed.")
 
         print("All Mapping Unit Tests Passed!")
