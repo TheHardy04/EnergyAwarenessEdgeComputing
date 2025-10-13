@@ -10,6 +10,10 @@ from mappingUnitTest import MappingUnitTest
 
 
 if __name__ == '__main__':
+
+    infra_properties_path = r'properties/Infra_8nodes.properties'
+    app_properties_path = r'properties/Appli_4comps.properties'
+
     parser = argparse.ArgumentParser(description='Demo placement runner')
     parser.add_argument('--start-host', type=int, default=None, help='Optional infra node id to start placement from')
     args = parser.parse_args()
@@ -17,7 +21,7 @@ if __name__ == '__main__':
     infra = InfraProperties.from_file()
     print(infra.to_json(indent=2, ensure_ascii=False))
 
-    infra = InfraProperties.from_file(r'properties\\Infra_8nodes.properties')
+    infra = InfraProperties.from_file(infra_properties_path)
     G = NetworkGraph.from_infra_dict(infra.to_dict())
     print("Summary:")
     G.print_summary()
@@ -31,7 +35,7 @@ if __name__ == '__main__':
     print(json.dumps(G.connectivity_info(), indent=2))
     G.draw()
 
-    app = AppProperties.from_file(r'properties\\Appli_4comps.properties')
+    app = AppProperties.from_file(app_properties_path)
     print("\nApp Properties:")
     print(app.to_json(indent=2, ensure_ascii=False))
 
@@ -49,10 +53,10 @@ if __name__ == '__main__':
     service_G.draw()
 
     # Placement example
-    infra = InfraProperties.from_file('properties/Infra_8nodes.properties')
+    infra = InfraProperties.from_file(infra_properties_path)
     net = NetworkGraph.from_infra_dict(infra.to_dict())
 
-    app = AppProperties.from_file('properties/Appli_4comps.properties')
+    app = AppProperties.from_file(app_properties_path   )
     svc = ServiceGraph.from_app_dict(app.to_dict())
 
     strategy = GreedyFirstFit()
